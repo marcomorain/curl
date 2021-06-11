@@ -4,7 +4,7 @@ version: 2.1
 commands:
   configure:
     steps:
-      - run: 
+      - run:
           command: |
             ./buildconf
             ./configure --enable-warnings --enable-werror --with-openssl
@@ -15,33 +15,24 @@ commands:
 
   test:
     steps:
-      - run: make test-nonflaky
+      - run: TFLAGS="-l" make test-nonflaky  | pcregrep -o1 "test (\d+)\.\.\." | circleci tests split > tests.txt
+      - run: TFLAGS="$(cat tests.txt | tr '\n' ' ')" make test-nonflaky
 
 executors:
-  ubuntu:
-    machine:
-      image: ubuntu-2004:202010-01
   docker:
     docker:
       - image: cimg/base:2021.05
 
 jobs:
-  basic:
-    executor: ubuntu
-    steps:
-      - checkout
-      - configure
-      - build
-      - test
-  
-  basic-docker:
+  test:
     executor: docker
+    parallelism: 4
     steps:
       - checkout
-      - run: 
-          command: | 
+      - run:
+          command: |
             sudo apt-get update
-            sudo apt-get install libtool autoconf automake pkg-config libssl-dev
+            sudo apt-get install libtool autoconf automake pkg-config libssl-dev pcregrep
           name: install prereqs
       - configure
       - build
@@ -51,5 +42,4 @@ jobs:
 workflows:
   all:
     jobs:
-      - basic
-      - basic-docker
+      - test
