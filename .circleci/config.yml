@@ -15,8 +15,11 @@ commands:
 
   test:
     steps:
-      - run: TFLAGS="-l" make test-nonflaky  | pcregrep -o1 "test (\d+)\.\.\." | circleci tests split > tests.txt
-      - run: TFLAGS="$(cat tests.txt | tr '\n' ' ')" make test-nonflaky
+      - run: TFLAGS="-l" make test-nonflaky  | tee test_output.txt
+      - run: cat test_output.txt | pcregrep -o1 "test (\d+)\.\.\." | circleci tests split | tr '\n' ' ' > tests.txt
+      - run: cat test_output.txt
+      - run: cat tests.txt
+      - run: TFLAGS="$(cat tests.txt)" make test-nonflaky
 
 executors:
   docker:
